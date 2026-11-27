@@ -1,0 +1,1 @@
+I-LOFAR telescope photograph: O'Dea, [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:I-LOFAR_telescope.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Resized from the original; no other changes. This photo shows the telescope, not the researchers.
