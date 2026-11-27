@@ -6,7 +6,7 @@
 
 ## What this repository contains
 
-This repository is the **published static website**, not the software or private credentials used to generate it.
+The default `main` branch is the **published static website**. The [source branch](https://github.com/kenost/the-darkstar/tree/source) holds the publisher and deployment code. Private credentials and local issue data are not stored in either branch.
 
 | Path | Contents |
 | --- | --- |
