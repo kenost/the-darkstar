@@ -1,0 +1,10 @@
+[Unit]
+Description=Publish The Darkstar every morning
+
+[Timer]
+OnCalendar=*-*-* 07:20:00 Europe/Helsinki
+Persistent=true
+Unit=darkstar-publish.service
+
+[Install]
+WantedBy=timers.target

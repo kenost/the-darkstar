@@ -1,0 +1,10 @@
+[Unit]
+Description=Upload the complete Darkstar archive to GitHub Pages
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=5min
+WorkingDirectory=/home/ken/.openclaw/workspace/the-darkstar
+ExecStart=/usr/bin/python3 /home/ken/.openclaw/workspace/the-darkstar/ops/deploy_github_pages.py

@@ -1,0 +1,12 @@
+[Unit]
+Description=Generate the daily Darkstar research edition
+After=network-online.target
+Wants=network-online.target
+OnFailure=darkstar-publish-failed.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=30min
+WorkingDirectory=/home/ken/.openclaw/workspace/the-darkstar
+EnvironmentFile=/home/ken/.config/the-darkstar/environment
+ExecStart=/usr/bin/python3 /home/ken/.openclaw/workspace/the-darkstar/publish.py

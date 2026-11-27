@@ -1,0 +1,15 @@
+.env
+.venv/
+__pycache__/
+# Generated editions and public deployment output are not publisher source.
+site/
+issues/
+# Local secrets, state, and legacy tunnel files stay off the source branch.
+.github/
+ops/notify_url.py
+ops/tunnel.py
+ops/darkstar-publish-failed.service
+ops/darkstar-tunnel.service
+ops/darkstar-url-check.service
+ops/darkstar-url-check.timer
+ops/darkstar-web.service

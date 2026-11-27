@@ -1,0 +1,11 @@
+[Unit]
+Description=Retry the Darkstar GitHub Pages upload after the daily issue
+
+[Timer]
+OnCalendar=*-*-* 08:00:00
+OnUnitInactiveSec=6h
+Persistent=true
+Unit=darkstar-pages-deploy.service
+
+[Install]
+WantedBy=timers.target
