@@ -3,6 +3,7 @@
 import argparse
 import base64
 import datetime as dt
+from email.utils import format_datetime
 import html
 import hashlib
 import json
@@ -27,6 +28,8 @@ ROOT = Path(__file__).resolve().parent
 ISSUES = ROOT / "issues"
 SITE = ROOT / "site"
 CANONICAL_BASE = "https://kenost.github.io/the-darkstar/"
+FEED_URL = CANONICAL_BASE + "feed.xml"
+FOLLOW_URL = "https://follow.it/feeds?enter-website=" + CANONICAL_BASE
 API = "https://generativelanguage.googleapis.com/v1beta/models"
 SOL_MODEL = os.getenv("DARKSTAR_SOL_MODEL", "openai/gpt-6-sol")
 TERRA_MODEL = os.getenv("DARKSTAR_TERRA_MODEL", "openai/gpt-6.1-terra")
@@ -609,11 +612,11 @@ def render_issue(issue, previous, prefix=""):
     lead = issue["articles"][0]
     archive = [(date, issue)] + [(x["date"], x) for x in previous]
     archive_links = "".join(f'<li><a href="{prefix}issues/{esc(d)}/">{esc(d)} <span>{esc(x["articles"][0]["title"])}</span></a></li>' for d, x in archive[:30])
-    nav = '<nav><a href="#today">Today’s edition</a><a href="#stories">Stories</a><a href="#archive">Archive</a><a href="#about">About</a></nav>'
+    nav = '<nav><a href="#today">Today’s edition</a><a href="#stories">Stories</a><a href="#archive">Archive</a><a href="#follow">Follow</a><a href="#about">About</a></nav>'
     def teaser(a, index):
         label = {"accessible": "The explainer", "analysis": "Deep field", "people": "Research people"}[a["kind"]]
         return f'<a class="teaser" href="#story-{index}"><span class="eyebrow">{label}</span><h3>{esc(a["title"])}</h3><p>{esc(a["deck"])}</p><span class="readmore">Read story ↗</span></a>'
-    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#eee9df"><meta name="description" content="The Darkstar: a daily research newspaper about black holes and neutron stars."><link rel="canonical" href="{esc(canonical_url)}"><title>The Darkstar — {esc(date)}</title><script>try{{if(localStorage.getItem('darkstar-theme')==='dark')document.documentElement.dataset.theme='dark'}}catch(e){{}}</script><link rel="stylesheet" href="{prefix}style.css"><script src="{prefix}theme.js" defer></script></head><body>
+    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#eee9df"><meta name="description" content="The Darkstar: a daily research newspaper about black holes and neutron stars."><link rel="canonical" href="{esc(canonical_url)}"><link rel="alternate" type="application/rss+xml" title="The Darkstar daily editions" href="{prefix}feed.xml"><title>The Darkstar — {esc(date)}</title><script>try{{if(localStorage.getItem('darkstar-theme')==='dark')document.documentElement.dataset.theme='dark'}}catch(e){{}}</script><link rel="stylesheet" href="{prefix}style.css"><script src="{prefix}theme.js" defer></script></head><body>
 <div class="topline"><span>Independent research newspaper</span><span>Black holes · Neutron stars · The people studying them</span><button class="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">☾ <span>Dark mode</span></button></div>
 <header class="masthead" id="today"><div class="star">✦</div><div class="name">THE DARKSTAR</div><p>Dispatches from the densest places in the universe</p></header>
 <div class="editionbar"><span>VOL. {esc(date[:4])} · NO. {esc(date[5:])}</span><span>{esc(dt.date.fromisoformat(date).strftime('%A, %B %d, %Y'))}</span><span>OPEN ACCESS EDITION</span></div>{nav}
@@ -623,8 +626,43 @@ def render_issue(issue, previous, prefix=""):
 <div class="rule-title"><span>Inside this edition</span><span>ORIGINAL RESEARCH, MADE READABLE</span></div>
 <div class="article-layout"><div class="article-main">{''.join(article_html(a, date, i, prefix) for i, a in enumerate(issue['articles']))}</div><aside><div class="aside-box"><div class="eyebrow">EDITOR’S NOTE</div><h3>A note on evidence</h3><p>These reports interpret newly posted research preprints. They are not a substitute for the papers, and preprints may change after review.</p></div><div class="aside-box"><div class="eyebrow">IN THIS ISSUE</div><ol>{''.join(f'<li><a href="#story-{i}">{esc(a["title"])}</a></li>' for i, a in enumerate(issue['articles']))}</ol></div></aside></div>
 <section class="archive" id="archive"><div class="rule-title"><span>Back issues</span><span>THE OBSERVATORY ARCHIVE</span></div><ul>{archive_links}</ul></section>
+<section class="follow" id="follow"><div class="rule-title"><span>Follow The Darkstar</span><span>ONE EDITION, WHEN PUBLISHED</span></div><p>Get a link to each new edition, with its story titles and short introductions. Follow by email through follow.it, or add the RSS feed to your preferred reader.</p><div class="follow-actions"><a class="follow-button" href="{esc(FOLLOW_URL)}" target="_blank" rel="noopener noreferrer">Follow by email ↗</a><a class="feed-link" href="{prefix}feed.xml">RSS feed ↗</a></div><p class="follow-note">On follow.it, choose email delivery. You can unfollow using the link in any email or from <a href="https://follow.it/followed-feeds" target="_blank" rel="noopener noreferrer">your followed feeds</a>. Delivery may lag publication by several hours.</p></section>
 <section class="about" id="about"><div><div class="eyebrow">ABOUT THE DARKSTAR</div><h2>A daily paper for the extraordinary, held to ordinary standards of evidence.</h2></div><p>Every edition starts with recent, freely available research. AI assists with drafting and illustration; source links, limitations, and preprint status travel with every story. Automated source checks are not independent fact-checking. An automated selection check avoids repeating papers and recent angles. Artwork is conceptual, never passed off as data.</p></section></main>
 <footer><strong>THE DARKSTAR</strong><span>Made for curious minds. Published daily when verified source material and generation are available.</span><a href="#today">Back to top ↑</a></footer></body></html>'''
+
+
+def write_feed(issues):
+    """One stable RSS item per edition, containing its headlines and ingresses."""
+    atom = "http://www.w3.org/2005/Atom"
+    ET.register_namespace("atom", atom)
+    rss = ET.Element("rss", version="2.0")
+    channel = ET.SubElement(rss, "channel")
+    for tag, value in (("title", "The Darkstar — daily editions"), ("link", CANONICAL_BASE),
+                       ("description", "Daily research reporting on black holes and neutron stars."),
+                       ("language", "en")):
+        ET.SubElement(channel, tag).text = value
+    ET.SubElement(channel, f"{{{atom}}}link", href=FEED_URL, rel="self", type="application/rss+xml")
+    for issue in sorted(issues, key=lambda item: item["date"], reverse=True)[:90]:
+        edition_url = f'{CANONICAL_BASE}issues/{issue["date"]}/'
+        item = ET.SubElement(channel, "item")
+        ET.SubElement(item, "title").text = f'The Darkstar — {issue["date"]}: {issue["articles"][0]["title"]}'
+        ET.SubElement(item, "link").text = edition_url
+        ET.SubElement(item, "guid", isPermaLink="true").text = edition_url
+        published = dt.datetime.fromisoformat(issue.get("generated_at", issue["date"] + "T12:00:00+00:00"))
+        if published.tzinfo is None:
+            published = published.replace(tzinfo=dt.timezone.utc)
+        ET.SubElement(item, "pubDate").text = format_datetime(published.astimezone(dt.timezone.utc), usegmt=True)
+        lines = [f'<p><a href="{html.escape(edition_url, quote=True)}">Read the {issue["date"]} edition</a></p>', "<ul>"]
+        for index, article in enumerate(issue["articles"]):
+            story_url = f"{edition_url}#story-{index}"
+            lines.append(f'<li><a href="{html.escape(story_url, quote=True)}">{html.escape(article["title"])}</a> — {html.escape(article["deck"])}</li>')
+        lines.append("</ul>")
+        ET.SubElement(item, "description").text = "".join(lines)
+    destination = SITE / "feed.xml"
+    with tempfile.NamedTemporaryFile("wb", dir=SITE, prefix=".feed-", delete=False) as handle:
+        ET.ElementTree(rss).write(handle, encoding="utf-8", xml_declaration=True)
+        temporary = Path(handle.name)
+    temporary.replace(destination)
 
 
 def main():
@@ -639,6 +677,7 @@ def main():
     issue_file = ISSUES / f"{args.date}.json"
     previous = [x for x in prior_issues() if x["date"] != args.date]
     if issue_file.exists() and not args.force and not args.dry_run:
+        write_feed(prior_issues())
         print(f"Edition {args.date} already exists; nothing changed")
         return
     candidates = shortlist_papers(fetch_papers(), previous)
@@ -698,6 +737,7 @@ def main():
     (SITE / "index.html").write_text(markup)
     (SITE / ".nojekyll").touch()
     issue_file.write_text(json.dumps(issue, ensure_ascii=False, indent=2) + "\n")
+    write_feed([issue] + previous)
     print(f"Published {args.date}: {len(articles)} articles, {len(cover.read_bytes())} image bytes")
 
 
