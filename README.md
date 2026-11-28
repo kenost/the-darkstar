@@ -14,9 +14,12 @@ The default `main` branch is the **published static website**. The [source branc
 | `issues/YYYY-MM-DD/index.html` | Permanent pages for past daily editions |
 | `assets/` | Cover and article illustrations, plus credited photography |
 | `style.css`, `theme.js` | Mobile-friendly newspaper layout and light/dark switch |
+| `feed.xml` | One RSS entry per edition, with all story titles and ingresses |
 | `.nojekyll` | Keeps GitHub Pages from altering the generated files |
 
 The archive grows as new editions are published. The local publishing job prepares an issue from recent freely available research, checks it against previous coverage to reduce repetition, then uploads the complete static site here. GitHub Pages serves it at the stable address above. If research retrieval or generation fails, the previous edition stays available.
+
+Readers can [follow new editions](https://kenost.github.io/the-darkstar/#follow) by email through follow.it or add the [RSS feed](https://kenost.github.io/the-darkstar/feed.xml) to a reader. follow.it manages email subscriptions and provides an unfollow link in its messages; no subscriber addresses are stored in this repository.
 
 ## Editorial approach
 
